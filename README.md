@@ -1,10 +1,17 @@
 
-- **CPI (Core CPI m/m)**: 50 events, Jun 2022 – Sep 2026. Actual/forecast/previous from economic calendar; XAUUSD price at release and 4H after recorded manually from TradingView H1 charts.
-- **FOMC (Fed Funds Rate)**: 21 events, Mar 2024 – Sep 2026. Same method.
-- **NFP (Non-Farm Payrolls)**: 21 events, Dec 2024 – Oct 2026. Same method.
 
-Total: 92 events across 3 event types, merged into `data/events.csv`.
+## LSTM Results
 
-surprise_score = (actual - forecast) / std(actual), computed separately per event_type since CPI (%), FOMC (%), and NFP (K jobs) are on different scales.
+Many-to-one LSTM (hidden_size=8, dropout=0.2, weight_decay=1e-3, gradient clipping, early stopping)
+on 10-event sequences of [surprise_score, pip_move_4h, vix, dxy_ret], predicting the next event's
+pip_move_4h.
 
-Impact label thresholds (pip_move_4h, 1 pip = $1): HIGH >15, MED 5–15, LOW <5.
+- LSTM Test MAE (early-stopped): 29.04
+- XGBoost (lag-features, N=10 rolling mean/std/last) Test MAE: 27.56
+
+Comparable performance once early stopping prevents overfitting — without it, the LSTM overfit
+heavily (train loss collapsed toward ~0, test MAE rose to 106). With only ~90 total events,
+XGBoost on simple rolling-window features slightly edges out the LSTM. Both models undershoot
+rare HIGH-impact spikes and overshoot near-zero moves, regressing toward the dataset mean — a
+data-scarcity limitation rather than an architecture flaw. More training events (especially more
+HIGH-impact examples) would likely let the LSTM realize its advantage on sequence patterns.
